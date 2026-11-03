@@ -1,0 +1,43 @@
+@import "tailwindcss";
+
+@variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  }
+  
+  code, pre, .font-mono {
+    font-family: 'JetBrains Mono', monospace;
+  }
+}
+
+/* Modo Claro e Escuro Adaptativos */
+html:not(.dark) {
+  --bg-main: #f8fafc;
+  --text-main: #0f172a;
+  color-scheme: light;
+}
+
+html.dark {
+  --bg-main: #020617;
+  --text-main: #f8fafc;
+  color-scheme: dark;
+}
+
+/* Customizações para Impressão Limpa */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  
+  header, aside, button, nav, .print\:hidden {
+    display: none !important;
+  }
+  
+  main {
+    padding: 0 !important;
+    background: white !important;
+  }
+}

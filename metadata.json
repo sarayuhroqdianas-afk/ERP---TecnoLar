@@ -1,0 +1,6 @@
+{
+  "name": "TecnoLar ERP & WMS Industrial",
+  "description": "Sistema integrado ERP e WMS para a fabricante de eletrodomésticos TecnoLar com gestão de produção, Milk Run 400m, cálculo dinâmico de ROP/SS/LEC e IA assistente.",
+  "requestFramePermissions": ["camera", "microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
