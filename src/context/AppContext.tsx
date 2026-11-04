@@ -46,6 +46,19 @@ import {
 } from '../utils/formulas';
 import { TRANSLATIONS, SupportedLanguage } from '../utils/translations';
 
+export type DaltonismMode = 'none' | 'protanopia' | 'deuteranopia' | 'tritanopia' | 'achromatopsia';
+export type FontSizeScale = 'normal' | 'large' | 'extralarge';
+
+export interface AccessibilitySettings {
+  highContrast: boolean;
+  fontSize: FontSizeScale;
+  daltonism: DaltonismMode;
+  screenReaderVoice: boolean; // Leitor de tela por voz com síntese de fala
+  librasCameraActive: boolean; // Câmera com tradutor e IA para Libras
+  voiceCommandsEnabled: boolean; // Comandos por voz para pessoas com deficiência visual
+  focusHighlight: boolean; // Indicador reforçado de foco (WCAG 2.4.7)
+}
+
 export interface AppSettings {
   theme: 'light' | 'dark';
   language: SupportedLanguage;
@@ -56,6 +69,7 @@ export interface AppSettings {
   microphonePermission: 'prompt' | 'granted' | 'denied';
   offlineCacheEnabled: boolean;
   dataSaverMode: boolean;
+  accessibility: AccessibilitySettings;
 }
 
 interface AppContextType {
@@ -136,6 +150,12 @@ interface AppContextType {
   printDocType: 'financeiro' | 'estoque' | 'requisicoes' | 'danfe' | 'especificacao';
   openPrintModal: (type: 'financeiro' | 'estoque' | 'requisicoes' | 'danfe' | 'especificacao') => void;
 
+  // Modais de Controle
+  isAccessibilityModalOpen: boolean;
+  setIsAccessibilityModalOpen: (open: boolean) => void;
+  updateAccessibility: (newAcc: Partial<AccessibilitySettings>) => void;
+  speakText: (text: string) => void;
+
   // Configurações & Idioma
   settings: AppSettings;
   updateSettings: (newSettings: Partial<AppSettings>) => void;
@@ -187,6 +207,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
   const [printDocType, setPrintDocType] = useState<'financeiro' | 'estoque' | 'requisicoes' | 'danfe' | 'especificacao'>('financeiro');
 
+  const [isAccessibilityModalOpen, setIsAccessibilityModalOpen] = useState(false);
+
   // Configurações
   const [settings, setSettings] = useState<AppSettings>({
     theme: 'dark',
@@ -198,18 +220,74 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     microphonePermission: 'prompt',
     offlineCacheEnabled: true,
     dataSaverMode: false,
+    accessibility: {
+      highContrast: false,
+      fontSize: 'normal',
+      daltonism: 'none',
+      screenReaderVoice: false,
+      librasCameraActive: false,
+      voiceCommandsEnabled: false,
+      focusHighlight: false,
+    },
   });
 
-  // Aplicação estrita do tema escuro/claro
+  // Aplicação estrita do tema escuro/claro e diretrizes WCAG
   useEffect(() => {
+    const root = document.documentElement;
     if (settings.theme === 'dark') {
-      document.documentElement.classList.add('dark');
+      root.classList.add('dark');
       document.body.className = 'bg-[#020617] text-slate-100 antialiased selection:bg-blue-600 selection:text-white';
     } else {
-      document.documentElement.classList.remove('dark');
+      root.classList.remove('dark');
       document.body.className = 'bg-[#f8fafc] text-slate-900 antialiased selection:bg-blue-600 selection:text-white';
     }
-  }, [settings.theme]);
+
+    // Acessibilidade: Tamanho de Fonte Global
+    root.classList.remove('font-scale-normal', 'font-scale-large', 'font-scale-extralarge');
+    root.classList.add(`font-scale-${settings.accessibility.fontSize}`);
+
+    // Acessibilidade: Alto Contraste (WCAG AAA)
+    if (settings.accessibility.highContrast) {
+      root.classList.add('wcag-high-contrast');
+    } else {
+      root.classList.remove('wcag-high-contrast');
+    }
+
+    // Acessibilidade: Inversão / Filtro de Daltonismo
+    root.classList.remove('daltonism-protanopia', 'daltonism-deuteranopia', 'daltonism-tritanopia', 'daltonism-achromatopsia');
+    if (settings.accessibility.daltonism !== 'none') {
+      root.classList.add(`daltonism-${settings.accessibility.daltonism}`);
+    }
+
+    // Acessibilidade: Indicador de Foco Acentuado
+    if (settings.accessibility.focusHighlight) {
+      root.classList.add('wcag-focus-highlight');
+    } else {
+      root.classList.remove('wcag-focus-highlight');
+    }
+  }, [settings.theme, settings.accessibility]);
+
+  // Função para síntese de fala (Leitor de Tela por Voz)
+  const speakText = (text: string) => {
+    if (!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    const cleanText = text.replace(/[*#_`]/g, '').trim();
+    if (!cleanText) return;
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.lang = settings.language === 'en-US' ? 'en-US' : settings.language === 'es-ES' ? 'es-ES' : 'pt-BR';
+    utterance.rate = 1.05;
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const updateAccessibility = (newAcc: Partial<AccessibilitySettings>) => {
+    setSettings((prev) => ({
+      ...prev,
+      accessibility: {
+        ...prev.accessibility,
+        ...newAcc,
+      },
+    }));
+  };
 
   const t = (key: string): string => {
     return TRANSLATIONS[settings.language]?.[key] || TRANSLATIONS['pt-BR']?.[key] || key;
@@ -602,6 +680,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setIsPrintModalOpen,
         printDocType,
         openPrintModal,
+        isAccessibilityModalOpen,
+        setIsAccessibilityModalOpen,
+        updateAccessibility,
+        speakText,
         settings,
         updateSettings,
         t,

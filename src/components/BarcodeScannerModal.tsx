@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import {
   X,
@@ -28,6 +28,46 @@ export const BarcodeScannerModal: React.FC = () => {
   const [scannedCode, setScannedCode] = useState('CMP-PLAS-001');
   const [customQty, setCustomQty] = useState<number>(10);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+  const [isCameraStreaming, setIsCameraStreaming] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  const startCamera = async () => {
+    setCameraError(null);
+    try {
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } },
+        });
+        streamRef.current = stream;
+        setIsCameraStreaming(true);
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.play();
+        }
+      } else {
+        throw new Error('Navegador sem suporte direto a câmera.');
+      }
+    } catch {
+      setCameraError('Câmera física não pôde ser iniciada (permissão ou dispositivo). Use o seletor rápido.');
+    }
+  };
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+    setIsCameraStreaming(false);
+  };
+
+  useEffect(() => {
+    if (!isBarcodeModalOpen) {
+      stopCamera();
+    }
+  }, [isBarcodeModalOpen]);
 
   if (!isBarcodeModalOpen) return null;
 
@@ -82,18 +122,56 @@ export const BarcodeScannerModal: React.FC = () => {
 
         {/* Viewfinder da Câmera / Laser */}
         <div className="p-4 bg-slate-950 flex flex-col items-center">
-          <div className="w-full h-44 bg-slate-900 rounded-xl border-2 border-dashed border-blue-500 relative flex items-center justify-center overflow-hidden shadow-inner">
+          <div className="w-full h-48 bg-slate-900 rounded-xl border-2 border-blue-500 relative flex items-center justify-center overflow-hidden shadow-inner">
+            {isCameraStreaming ? (
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="flex flex-col items-center text-center p-3">
+                <Scan className="w-10 h-10 text-blue-400 mb-2 animate-bounce" />
+                <span className="text-xs text-cyan-300 font-mono font-bold tracking-widest">
+                  [ COLETOR LASER &amp; SCANNER WMS ]
+                </span>
+                <span className="text-[11px] text-slate-400 mt-1">
+                  Aponte para o palete, etiqueta de peça ou ative a câmera do aparelho
+                </span>
+              </div>
+            )}
+
+            {/* Linha Laser Vermelha Animada */}
             <div className="absolute w-full h-1 bg-rose-500 shadow-[0_0_12px_#f43f5e] animate-pulse" />
-            <div className="flex flex-col items-center text-center p-3">
-              <Scan className="w-10 h-10 text-blue-400 mb-2 animate-bounce" />
-              <span className="text-xs text-cyan-300 font-mono font-bold tracking-widest">
-                [ CÂMERA &amp; LEITOR LASER ATIVOS ]
-              </span>
-              <span className="text-[11px] text-slate-400 mt-1">
-                Aponte para o palete, etiqueta de peça ou digite o SKU abaixo
-              </span>
+
+            {/* Botão de Controle da Câmera Real do Dispositivo */}
+            <div className="absolute bottom-2 right-2 z-10 flex gap-1.5">
+              {isCameraStreaming ? (
+                <button
+                  type="button"
+                  onClick={stopCamera}
+                  className="px-2.5 py-1 bg-rose-600 hover:bg-rose-500 text-white rounded text-[11px] font-bold shadow-md"
+                >
+                  Desligar Câmera
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={startCamera}
+                  className="px-2.5 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded text-[11px] font-bold shadow-md"
+                >
+                  Ativar Câmera Real
+                </button>
+              )}
             </div>
           </div>
+          {cameraError && (
+            <div className="w-full mt-1.5 text-[11px] text-amber-400 text-center">
+              {cameraError}
+            </div>
+          )}
 
           {/* Seleção rápida de componentes para simulação rápida */}
           <div className="w-full mt-3 space-y-1.5">

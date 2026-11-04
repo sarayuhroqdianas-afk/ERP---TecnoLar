@@ -19,6 +19,7 @@ import {
   Key,
   Shield,
   FileText,
+  Eye,
 } from 'lucide-react';
 
 export const SettingsModal: React.FC = () => {
@@ -33,6 +34,7 @@ export const SettingsModal: React.FC = () => {
   const [activeTab, setActiveTab] = useState<
     | 'tema'
     | 'idioma'
+    | 'acessibilidade'
     | 'notificacoes'
     | 'perfil'
     | 'privacidade'
@@ -160,6 +162,16 @@ export const SettingsModal: React.FC = () => {
             >
               <Globe className="w-4 h-4" />
               <span>Idioma &amp; Região</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('acessibilidade')}
+              className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-semibold text-left transition ${
+                activeTab === 'acessibilidade' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+              }`}
+            >
+              <Eye className="w-4 h-4 text-yellow-300" />
+              <span>Acessibilidade (WCAG)</span>
             </button>
             <button
               type="button"
@@ -328,6 +340,91 @@ export const SettingsModal: React.FC = () => {
                       <option value="EUR">Euro (€ - EUR)</option>
                     </select>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* ABA: ACESSIBILIDADE */}
+            {activeTab === 'acessibilidade' && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                  <div>
+                    <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                      <Eye className="w-4 h-4 text-yellow-300" />
+                      Recursos de Acessibilidade &amp; Inclusão (WCAG 2.1 / 2.2)
+                    </h3>
+                    <p className="text-xs text-slate-400">
+                      Configurações rápidas de alto contraste, tamanho de fonte e daltonismo
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 space-y-2">
+                    <span className="text-xs font-bold text-white block">Alto Contraste AAA</span>
+                    <p className="text-[11px] text-slate-400">Eleva a taxa de contraste para mais de 7:1</p>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        updateSettings({
+                          accessibility: {
+                            ...settings.accessibility,
+                            highContrast: !settings.accessibility.highContrast,
+                          },
+                        })
+                      }
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition ${
+                        settings.accessibility.highContrast
+                          ? 'bg-amber-400 text-black border-amber-300'
+                          : 'bg-slate-800 text-slate-300 border-slate-700'
+                      }`}
+                    >
+                      {settings.accessibility.highContrast ? 'Ativado' : 'Desativado'}
+                    </button>
+                  </div>
+
+                  <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 space-y-2">
+                    <span className="text-xs font-bold text-white block">Escala de Fonte</span>
+                    <p className="text-[11px] text-slate-400">Zoom no texto para baixa visão</p>
+                    <select
+                      value={settings.accessibility.fontSize}
+                      onChange={(e) =>
+                        updateSettings({
+                          accessibility: {
+                            ...settings.accessibility,
+                            fontSize: e.target.value as any,
+                          },
+                        })
+                      }
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white"
+                    >
+                      <option value="normal">Normal (100%)</option>
+                      <option value="large">Grande (112%)</option>
+                      <option value="extralarge">Muito Grande (125%)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 space-y-2">
+                  <span className="text-xs font-bold text-white block">Compensação de Daltonismo</span>
+                  <select
+                    value={settings.accessibility.daltonism}
+                    onChange={(e) =>
+                      updateSettings({
+                        accessibility: {
+                          ...settings.accessibility,
+                          daltonism: e.target.value as any,
+                        },
+                      })
+                    }
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white"
+                  >
+                    <option value="none">Nenhum (Padrão)</option>
+                    <option value="protanopia">Protanopia (vermelho)</option>
+                    <option value="deuteranopia">Deuteranopia (verde)</option>
+                    <option value="tritanopia">Tritanopia (azul/amarelo)</option>
+                    <option value="achromatopsia">Acromatopsia (monocromático)</option>
+                  </select>
                 </div>
               </div>
             )}

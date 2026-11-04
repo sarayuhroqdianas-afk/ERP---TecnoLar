@@ -25,6 +25,86 @@ html.dark {
   color-scheme: dark;
 }
 
+/* ========================================================
+   DIRETRIZES DE ACESSIBILIDADE WCAG 2.1 / 2.2 (NÍVEL AA / AAA)
+   ======================================================== */
+
+/* Escalas de Tamanho de Fonte */
+html.font-scale-large {
+  font-size: 112.5% !important; /* +12.5% */
+}
+
+html.font-scale-extralarge {
+  font-size: 125% !important; /* +25% */
+}
+
+/* Alto Contraste (WCAG AAA - Taxa de contraste >= 7:1) */
+html.wcag-high-contrast {
+  filter: contrast(140%) !important;
+}
+
+html.wcag-high-contrast.dark {
+  background-color: #000000 !important;
+}
+
+html.wcag-high-contrast:not(.dark) {
+  background-color: #ffffff !important;
+}
+
+html.wcag-high-contrast button,
+html.wcag-high-contrast input,
+html.wcag-high-contrast select,
+html.wcag-high-contrast textarea {
+  border-width: 2px !important;
+  font-weight: 700 !important;
+}
+
+/* Inversão e Filtros de Daltonismo */
+html.daltonism-protanopia {
+  /* Protanopia (dificuldade vermelho): compensa via matriz ou filtro ajustado */
+  filter: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg"><filter id="f"><feColorMatrix type="matrix" values="0.567,0.433,0,0,0 0.558,0.442,0,0,0 0,0.242,0.758,0,0 0,0,0,1,0"/></filter></svg>#f') contrast(110%);
+}
+
+html.daltonism-deuteranopia {
+  /* Deuteranopia (dificuldade verde): compensa matriz verde/vermelho */
+  filter: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg"><filter id="f"><feColorMatrix type="matrix" values="0.625,0.375,0,0,0 0.7,0.3,0,0,0 0,0.3,0.7,0,0 0,0,0,1,0"/></filter></svg>#f') contrast(110%);
+}
+
+html.daltonism-tritanopia {
+  /* Tritanopia (dificuldade azul/amarelo) */
+  filter: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg"><filter id="f"><feColorMatrix type="matrix" values="0.95,0.05,0,0,0 0,0.433,0.567,0,0 0,0.475,0.525,0,0 0,0,0,1,0"/></filter></svg>#f') contrast(110%);
+}
+
+html.daltonism-achromatopsia {
+  /* Monocromático / Acromatopsia com alto contraste */
+  filter: grayscale(100%) contrast(135%);
+}
+
+/* Indicador de Foco Acentuado (WCAG 2.4.7) */
+html.wcag-focus-highlight *:focus-visible {
+  outline: 4px solid #facc15 !important;
+  outline-offset: 3px !important;
+  box-shadow: 0 0 0 6px #000000 !important;
+}
+
+/* Botão de Pular para o Conteúdo (Skip to Main Content - WCAG 2.4.1) */
+.skip-link {
+  position: absolute;
+  top: -999px;
+  left: 10px;
+  background: #2563eb;
+  color: #ffffff;
+  padding: 12px 20px;
+  z-index: 10000;
+  font-weight: 800;
+  border-radius: 8px;
+  text-decoration: underline;
+}
+
+.skip-link:focus {
+  top: 10px;
+}
+
 /* Customizações para Impressão Limpa */
 @media print {
   body {

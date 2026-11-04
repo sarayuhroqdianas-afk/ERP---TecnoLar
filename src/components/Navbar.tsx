@@ -24,6 +24,7 @@ import {
   MapPin,
   ExternalLink,
   DollarSign,
+  Eye,
 } from 'lucide-react';
 
 const ROLES_LIST: UserRole[] = [
@@ -62,6 +63,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleMobileMenu, isMobileMenu
     setIsSettingsModalOpen,
     setIsAiAssistantOpen,
     openPrintModal,
+    setIsAccessibilityModalOpen,
     settings,
     updateSettings,
     milkRunTrips,
@@ -335,6 +337,18 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleMobileMenu, isMobileMenu
 
         {/* Lado Direito: Scanner, IA, Impressão, Idioma, Tema, Perfil */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* Botão Próprio de Acessibilidade (WCAG, Libras, Contraste, Voz) */}
+          <button
+            type="button"
+            onClick={() => setIsAccessibilityModalOpen(true)}
+            title="Recursos de Acessibilidade: Libras com Câmera, Daltonismo, Alto Contraste e Comandos por Voz"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-blue-400 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md transition active:scale-95 shrink-0"
+            aria-label="Abrir recursos de acessibilidade e Libras"
+          >
+            <Eye className="w-4 h-4 text-yellow-300" />
+            <span className="hidden lg:inline">Acessibilidade</span>
+          </button>
+
           {/* Scanner de Código de Barras (Câmera) */}
           <button
             type="button"

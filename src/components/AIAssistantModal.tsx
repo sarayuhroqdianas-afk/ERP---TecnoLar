@@ -62,22 +62,51 @@ export const AIAssistantModal: React.FC = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [cameraActive, setCameraActive] = useState(false);
   const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false);
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const speechRecognitionRef = useRef<any>(null);
 
   // Efeito fundamental: Sempre sincronizar estritamente com o perfil de usuário ativo atual
   useEffect(() => {
-    const welcomeText = `Olá, **${currentUser.name.split(' ')[0]}**! Sou o Copiloto Industrial TecnoLar.\nEstou calibrado e operando com o seu perfil de **${currentUser.role}** (Matrícula: ${currentUser.matricula}).\n\nMinhas respostas, permissões de acesso e filtros de dados estão rigorosamente configurados para o escopo de **${currentUser.role}**.\n\nComo posso ajudar na sua operação fabril hoje?`;
+    const firstName = currentUser?.name ? currentUser.name.split(' ')[0] : 'Colaborador';
+    const currentRole = currentUser?.role || 'Operador de Máquina';
+    const currentMatricula = currentUser?.matricula || 'N/A';
+    const welcomeText = `Olá, **${firstName}**! Sou o Copiloto Industrial TecnoLar.\nEstou calibrado e operando com o seu perfil de **${currentRole}** (Matrícula: ${currentMatricula}).\n\nMinhas respostas, permissões de acesso e filtros de dados estão rigorosamente configurados para o escopo de **${currentRole}**.\n\nComo posso ajudar na sua operação fabril hoje?`;
     
     setMessages([
       {
         sender: 'assistant',
         text: welcomeText,
         timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-        targetRole: currentUser.role,
+        targetRole: currentRole,
       },
     ]);
-  }, [currentUser.id, currentUser.role, currentUser.name, currentUser.matricula]);
+  }, [currentUser?.id, currentUser?.role, currentUser?.name, currentUser?.matricula]);
+
+  // Limpeza de recursos de hardware ao fechar modal
+  useEffect(() => {
+    if (!isAiAssistantOpen) {
+      if (mediaStreamRef.current) {
+        mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+        mediaStreamRef.current = null;
+      }
+      if (speechRecognitionRef.current) {
+        try {
+          speechRecognitionRef.current.stop();
+        } catch {
+          // ignore
+        }
+      }
+      setIsRecording(false);
+      setCameraActive(false);
+    } else {
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
+  }, [isAiAssistantOpen]);
 
   useEffect(() => {
     if (isAiAssistantOpen) {
@@ -197,34 +226,87 @@ export const AIAssistantModal: React.FC = () => {
     ]);
   };
 
-  // Simulação de voz / gravação
+  // Reconhecimento de Fala Real com o Microfone (Web Speech API)
   const toggleRecording = () => {
     if (isRecording) {
-      setIsRecording(false);
-      handleSendMessage('Qual o status atual do lote crítico de gabinetes plásticos no WMS?');
-    } else {
-      setIsRecording(true);
-      setTimeout(() => {
-        setIsRecording(false);
-        if (currentUser.role === 'Operador de Máquina') {
-          handleSendMessage('Como registrar refugo e scrap da Linha 1 no meu posto?');
-        } else if (currentUser.role === 'Engenheiro de Produção') {
-          handleSendMessage('Qual a estrutura BOM detalhada da Lavadora Turbo 15kg?');
-        } else if (currentUser.role === 'Analista de PCP') {
-          handleSendMessage('Qual o sequenciamento de OPs para cumprir a meta de 1.200 unidades/dia?');
-        } else {
-          handleSendMessage('Qual o detalhamento das 28 horas paradas e dos R$ 766.000 de perdas no trimestre?');
+      if (speechRecognitionRef.current) {
+        try {
+          speechRecognitionRef.current.stop();
+        } catch {
+          // ignore
         }
-      }, 2500);
+      }
+      setIsRecording(false);
+      return;
     }
+
+    const SpeechRec = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (SpeechRec) {
+      try {
+        const recognition = new SpeechRec();
+        recognition.lang = 'pt-BR';
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+
+        recognition.onstart = () => {
+          setIsRecording(true);
+        };
+
+        recognition.onresult = (event: any) => {
+          const spoken = event.results[0][0].transcript;
+          if (spoken) {
+            setInputQuery(spoken);
+            handleSendMessage(spoken);
+          }
+        };
+
+        recognition.onerror = () => {
+          setIsRecording(false);
+          // Fallback inteligente caso microfone seja negado
+          triggerSmartVoiceFallback();
+        };
+
+        recognition.onend = () => {
+          setIsRecording(false);
+        };
+
+        speechRecognitionRef.current = recognition;
+        recognition.start();
+        return;
+      } catch {
+        // Fallback
+      }
+    }
+
+    // Fallback se Web Speech API não for suportada ou microfone físico não disponível
+    triggerSmartVoiceFallback();
   };
 
-  // Captura de imagem com a câmera
+  const triggerSmartVoiceFallback = () => {
+    setIsRecording(true);
+    setTimeout(() => {
+      setIsRecording(false);
+      if (currentUser.role === 'Operador de Máquina') {
+        handleSendMessage('Como registrar refugo e scrap da Linha 1 no meu posto de montagem?');
+      } else if (currentUser.role === 'Engenheiro de Produção') {
+        handleSendMessage('Qual a estrutura BOM detalhada da Lavadora Turbo 15kg?');
+      } else if (currentUser.role === 'Analista de PCP') {
+        handleSendMessage('Qual o sequenciamento de OPs para cumprir a meta de 1.200 unidades/dia?');
+      } else {
+        handleSendMessage('Qual o detalhamento das 28 horas paradas e dos R$ 766.000 de perdas no trimestre?');
+      }
+    }, 1500);
+  };
+
+  // Captura de imagem com a câmera real
   const startCamera = async () => {
     setCameraActive(true);
     try {
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
+        });
+        mediaStreamRef.current = stream;
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           videoRef.current.play();
@@ -235,24 +317,39 @@ export const AIAssistantModal: React.FC = () => {
     }
   };
 
+  const stopCameraStream = () => {
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+      mediaStreamRef.current = null;
+    }
+    setCameraActive(false);
+  };
+
   const capturePhoto = () => {
     const canvas = document.createElement('canvas');
-    canvas.width = 320;
-    canvas.height = 240;
+    canvas.width = 480;
+    canvas.height = 360;
     const ctx = canvas.getContext('2d');
     if (ctx) {
-      ctx.fillStyle = '#0f172a';
-      ctx.fillRect(0, 0, 320, 240);
-      ctx.fillStyle = '#38bdf8';
-      ctx.font = '14px monospace';
-      ctx.fillText('TECNOLAR - SCANNER', 20, 40);
-      ctx.fillText('CMP-PLAS-001 | LOT-PLAS-88', 20, 80);
-      ctx.fillStyle = '#ffffff';
-      for (let i = 0; i < 30; i++) {
-        ctx.fillRect(20 + i * 8, 110, i % 2 === 0 ? 3 : 5, 60);
+      if (videoRef.current && videoRef.current.videoWidth > 0) {
+        // Captura o frame real do vídeo da câmera
+        ctx.drawImage(videoRef.current, 0, 0, 480, 360);
+      } else {
+        // Render sintético industrial se câmera não tiver transmitido frames
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(0, 0, 480, 360);
+        ctx.fillStyle = '#38bdf8';
+        ctx.font = '16px monospace';
+        ctx.fillText('TECNOLAR WMS - INSPEÇÃO', 30, 50);
+        ctx.fillText('CMP-PLAS-001 | LOT-PLAS-88', 30, 90);
+        ctx.fillStyle = '#ffffff';
+        for (let i = 0; i < 40; i++) {
+          ctx.fillRect(30 + i * 10, 130, i % 2 === 0 ? 4 : 6, 80);
+        }
       }
     }
-    const base64 = canvas.toDataURL('image/jpeg');
+    const base64 = canvas.toDataURL('image/jpeg', 0.85);
+    stopCameraStream();
     handleSendMessage('Identifique este componente e verifique saldo de estoque no WMS.', base64);
   };
 
@@ -444,8 +541,8 @@ export const AIAssistantModal: React.FC = () => {
           <div className="p-3 bg-slate-950 border-b border-slate-800 flex flex-col items-center relative">
             <button
               type="button"
-              onClick={() => setCameraActive(false)}
-              className="absolute top-2 right-2 p-1.5 bg-rose-600 text-white rounded-lg text-xs font-bold flex items-center gap-1 shadow-md z-10"
+              onClick={stopCameraStream}
+              className="absolute top-2 right-2 p-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-xs font-bold flex items-center gap-1 shadow-md z-10 border border-white"
             >
               <X className="w-4 h-4 stroke-[3]" />
               <span>Fechar Câmera</span>

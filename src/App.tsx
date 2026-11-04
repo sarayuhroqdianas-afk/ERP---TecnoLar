@@ -12,6 +12,7 @@ import { AIAssistantModal } from './components/AIAssistantModal';
 import { BarcodeScannerModal } from './components/BarcodeScannerModal';
 import { QuickMovementModal } from './components/QuickMovementModal';
 import { PrintDocumentModal } from './components/PrintDocumentModal';
+import { AccessibilityModal } from './components/AccessibilityModal';
 import { LoginModal } from './components/LoginModal';
 import { LoginPage } from './components/LoginPage';
 import { OperatorTerminal } from './components/OperatorTerminal';
@@ -113,6 +114,7 @@ const MainLayout: React.FC = () => {
       </div>
 
       {/* Modais Globais do Sistema */}
+      <AccessibilityModal />
       <SettingsModal />
       <AIAssistantModal />
       <BarcodeScannerModal />
